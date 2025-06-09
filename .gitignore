@@ -1,0 +1,32 @@
+# macOS system files
+.DS_Store
+# VS Code settings
+.vscode/
+# Virtual environment
+venv/
+# Python bytecode
+**/__pycache__/
+# Environment variables and parameter file
+.env
+parameters.json
+# Directory containing the test/draft files created during the development of the project
+scratchpad/
+# Eclude everything in the data directory
+data/*
+# Except the gitkeep file to keep the directory structure
+!data/.gitkeep
+# Exclude flight database which will be built from scratch
+flight_assistant/data/db/flight_database.db
+# Open ai API key
+openai_api_key.txt
+# Documentation in pages format
+documentation/technical_doc.pages
+# Test videos
+test_videos/
+# Everything that ends with "_old"
+*_old*
+
+
+
+
+

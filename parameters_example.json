@@ -1,0 +1,36 @@
+{
+    "IMAGE_URLS": [
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/1.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/2.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/3.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/4.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/5.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/6.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/7.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/8.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/9.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/10.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/11.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/12.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/13.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/14.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/15.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/16.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/17.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/18.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/19.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/20.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/21.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/22.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/23.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/24.jpg",
+    "https://static.xyz.com.s3.eu-central-1.amazonaws.com/HotelImages/25.jpg"
+],
+
+"USER_QUERIES": [
+    "Double rooms with a sea view",
+    "Rooms with a balcony and air conditioning, with city view",
+    "Triple rooms with a desk",
+    "Rooms with a maximum capacity of 4 people"
+]
+}
