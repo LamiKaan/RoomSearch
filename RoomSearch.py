@@ -15,7 +15,6 @@ import asyncio
 import requests
 import backoff
 from tqdm import tqdm
-import aioconsole
 
 from langchain_core.messages import ToolMessage, HumanMessage, SystemMessage
 from langchain_core.runnables.config import RunnableConfig
@@ -821,7 +820,7 @@ class RoomSearch:
         while True:
             
             # Get input from the user
-            user_input = (await aioconsole.ainput("\nUser: ")).strip()
+            user_input = input("\nUser: ").strip()
             if user_input.lower() in ["exit", "quit"]:
                 print("Goodbye!")
                 break
@@ -853,6 +852,73 @@ class RoomSearch:
                             if message.type == "ai" and message.content != "":
                                 print(f"\nAssistant: {message.content}")
 
+    @staticmethod
+    async def collect_astream(astream):
+        results = []
+        async for step in astream:
+            results.append(step)
+
+        return results
+    
+    def start_chat_sync(self):
+        # Create a config object with a unique thread_id for memory tracking, and other runtime information (RoomSearch object)
+        config = {
+            "configurable": {
+                "thread_id": 1,
+                "room_search_object": self
+            }
+        }
+
+        # Create initial state with a system message for context
+        initial_state = {
+            "messages": [SystemMessage(content=room_search_system_prompt)],
+            "latest_tool_call": None,
+            "user_query": None,
+            "user_query_tool": None,
+            "similarity_type": "openai",
+            "room_search_results": None
+        }
+        
+        # Invoke graph once to initialize the state
+        state = asyncio.run(room_search_graph.ainvoke(initial_state, config=config))
+        # pretty_print_object(state)
+
+        while True:
+            
+            # Get input from the user
+            user_input = input("\nUser: ").strip()
+            if user_input.lower() in ["exit", "quit"]:
+                print("Goodbye!")
+                break
+            
+            # Get the current state of the graph
+            graph_state = room_search_graph.get_state(config).values
+            # pretty_print_object(graph_state)
+            # Merge the graph state with the current state (updating the state with the latest values)
+            state = {**state, **graph_state}
+        
+            # Invoke the graph with the user input and get the (async) stream of responses (a coroutine object)
+            astream = room_search_graph.astream(
+                input={**state, "messages": [HumanMessage(content=user_input)]},
+                config=config,
+                stream_mode="updates"
+            )
+
+            # For every step (a node's execution and its corresponding updates in the state) in the stream
+            for step in asyncio.run(self.collect_astream(astream)):
+
+                # For every state dictionary delta (dictionary of updated fields and update values)
+                for state_delta in step.values():
+
+                    # If there is an update to the messages field in the state
+                    if (state_delta is not None) and ("messages" in state_delta):
+                        # For every message in the list of message updates
+                        for message in state_delta["messages"]:
+                            # If the message is an ai response and contains content (not a tool call), print it back to the user
+                            if message.type == "ai" and message.content != "":
+                                print(f"\nAssistant: {message.content}")
+
+
 
 if __name__ == "__main__":
         
@@ -872,4 +938,17 @@ if __name__ == "__main__":
             # Start chatting with the RoomSearch instance
             await room_search.start_chat()
 
-        asyncio.run(main())
+        # Suppress SSL warnings for insecure requests
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        # Get image urls and user queries from parameter file
+        with open("parameters.json", "r") as f:
+            parameters = json.load(f)
+        image_urls = parameters["IMAGE_URLS"]
+        user_queries = parameters["USER_QUERIES"]
+
+        # Create an instance of the RoomSearch class with image urls and user queries
+        room_search = asyncio.run(RoomSearch.create_instance_async(image_urls, user_queries))
+
+        # Start chatting with the RoomSearch instance
+        room_search.start_chat_sync()
