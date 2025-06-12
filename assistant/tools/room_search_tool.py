@@ -55,7 +55,7 @@ class RoomSearchTool(BaseTool):
         room_search: RoomSearch = config["configurable"]["room_search_object"]
 
         # Check if the user query is one of cached/default queries
-        if user_query in room_search.user_queries:
+        if (user_query in room_search.user_queries) and (room_search.similarities[user_query].get(similarity_type, None) is True):
             try:
                 # Retrieve the similarity dictionary for the given user query and similarity type
                 similarities = room_search.similarities[user_query][similarity_type]
@@ -89,6 +89,61 @@ class RoomSearchTool(BaseTool):
                         figure_subtitle = f"Most similar 6 images (best 6 matches) - {similarity_type} similarity"
                     else:
                         figure_subtitle = f"Most similar images - {similarity_type} similarity"
+                    figure.suptitle(f"{figure_title}\n{figure_subtitle}", fontsize=16)
+                    # Flatten axes for easy iteration if grid is 2D
+                    if num_images > 1:
+                        axes = axes.flatten()
+                    else:
+                        axes = [axes]
+                    # Loop through the grid/images and display them
+                    for i in range(num_rows * num_columns):
+                        axis = axes[i]
+                        if i < num_images:
+                            axis.imshow(best_images[i])
+                            image_title = os.path.basename(best_urls[i])
+                            axis.set_title(image_title)
+                            image_rank = i + 1
+                            axis.set_xlabel(image_rank, fontsize=9)
+                        else:
+                            axis.axis('off')
+                        axis.set_xticks([])
+                        axis.set_yticks([])
+
+                    # Adjust layout to leave space for the title
+                    plt.tight_layout(rect=[0, 0, 1, 0.92])
+                    # Show the figure
+                    plt.show()
+
+                    success = True
+                    # Return the best URLs
+                    return success, best_urls
+                
+                # If there are no images with similarity score > 0.5
+                else:
+                    # Sort all similarities from highest to lowest similarity score
+                    sorted_urls = sorted(similarities, key=similarities.get, reverse=True)
+
+                    # Get the URL of the most similar room image (top match)
+                    best_urls = sorted_urls[:0]
+
+                    # Get the RGB image corresponding to the best URLs
+                    best_images = [room_search.images_rgb[url] for url in best_urls]
+
+                    # DISPLAY THE BEST IMAGES
+                    # Get the number of images and determine the grid size (rows and columns) for clean layout
+                    num_images = len(best_images)
+                    # 2 images per row
+                    num_rows = math.ceil(num_images / 2)
+                    num_columns = math.ceil(num_images / num_rows)
+
+                    # Create a figure and axes
+                    figure, axes = plt.subplots(num_rows, num_columns, figsize=(num_rows * 5, num_columns * 5))
+                    # Set the title of the figure
+                    figure_title = f"User Query: {user_query}"
+                    if len(similarities) > 6:
+                        figure_subtitle = f"Most similar 6 images (best 6 matches) - {similarity_type} similarity"
+                    else:
+                        figure_subtitle = f"No sufficiently similar images have been found for {similarity_type} similarity. However, the most similar image is shown below."
                     figure.suptitle(f"{figure_title}\n{figure_subtitle}", fontsize=16)
                     # Flatten axes for easy iteration if grid is 2D
                     if num_images > 1:
@@ -225,6 +280,58 @@ class RoomSearchTool(BaseTool):
                         success = True
                         # Return the best URLs
                         return success, best_urls
+                    
+                    # If there are no images with similarity score > 0.5
+                    else:
+                        # Sort all similarities from highest to lowest similarity score
+                        sorted_urls = sorted(similarities, key=similarities.get, reverse=True)
+
+                        # Get the URL of the most similar room image (top match)
+                        best_urls = [sorted_urls[0]]
+
+                        # Get the RGB image corresponding to the best URLs
+                        best_images = [room_search.images_rgb[url] for url in best_urls]
+
+                        # DISPLAY THE BEST IMAGES
+                        # Get the number of images and determine the grid size (rows and columns) for clean layout
+                        num_images = len(best_images)
+                        # 2 images per row
+                        num_rows = math.ceil(num_images / 2)
+                        num_columns = math.ceil(num_images / num_rows)
+
+                        # Create a figure and axes
+                        figure, axes = plt.subplots(num_rows, num_columns, figsize=(num_rows * 5, num_columns * 5))
+                        # Set the title of the figure
+                        figure_title = f"User Query: {user_query}"
+                        figure_subtitle = f"No sufficiently similar images have been found for {similarity_type} similarity. However, the most similar image is shown below."
+                        figure.suptitle(f"{figure_title}\n{figure_subtitle}", fontsize=16)
+                        # Flatten axes for easy iteration if grid is 2D
+                        if num_images > 1:
+                            axes = axes.flatten()
+                        else:
+                            axes = [axes]
+                        # Loop through the grid/images and display them
+                        for i in range(num_rows * num_columns):
+                            axis = axes[i]
+                            if i < num_images:
+                                axis.imshow(best_images[i])
+                                image_title = os.path.basename(best_urls[i])
+                                axis.set_title(image_title)
+                                image_rank = i + 1
+                                axis.set_xlabel(image_rank, fontsize=9)
+                            else:
+                                axis.axis('off')
+                            axis.set_xticks([])
+                            axis.set_yticks([])
+
+                        # Adjust layout to leave space for the title
+                        plt.tight_layout(rect=[0, 0, 1, 0.92])
+                        # Show the figure
+                        plt.show()
+
+                        success = True
+                        # Return the best URLs
+                        return success, best_urls
 
                 except Exception as e:
                     error_message = f"An error occurred while searching for most similar room images (in batch):\n{e}"
@@ -243,14 +350,14 @@ class RoomSearchTool(BaseTool):
 
                 try:
                     # Get the similarity scores of each image for the new query using the keyword similarity method
-                    success, similarities_keyword = room_search.get_similarities_keyword(room_search.image_urls, [user_query], room_search.descriptions)
+                    success, similarities_keyword = room_search.get_similarities_keyword(room_search.image_urls, [user_query], room_search.descriptions, normalize=False)
 
                     if success:
                         # Get the similarity score of each image for the new query, and store them
-                        for url, similarity_score in zip(room_search.image_urls, similarities_keyword):
+                        for url, similarity_score in zip(room_search.image_urls, similarities_keyword[0]):
                             
                             # similarity_score is a list of floats with only 1 element (for single query) in that case, so we take it
-                            score = similarity_score[0]
+                            score = similarity_score
 
                             # And store it
                             room_search.similarities[user_query]["keyword"][url] = score
@@ -322,6 +429,58 @@ class RoomSearchTool(BaseTool):
                         success = True
                         # Return the best URLs
                         return success, best_urls
+                    
+                    # If there are no images with similarity score > 0.5
+                    else:
+                        # Sort all similarities from highest to lowest similarity score
+                        sorted_urls = sorted(similarities, key=similarities.get, reverse=True)
+
+                        # Get the URL of the most similar room image (top match)
+                        best_urls = [sorted_urls[0]]
+
+                        # Get the RGB image corresponding to the best URLs
+                        best_images = [room_search.images_rgb[url] for url in best_urls]
+
+                        # DISPLAY THE BEST IMAGES
+                        # Get the number of images and determine the grid size (rows and columns) for clean layout
+                        num_images = len(best_images)
+                        # 2 images per row
+                        num_rows = math.ceil(num_images / 2)
+                        num_columns = math.ceil(num_images / num_rows)
+
+                        # Create a figure and axes
+                        figure, axes = plt.subplots(num_rows, num_columns, figsize=(num_rows * 5, num_columns * 5))
+                        # Set the title of the figure
+                        figure_title = f"User Query: {user_query}"
+                        figure_subtitle = f"No sufficiently similar images have been found for {similarity_type} similarity. However, the most similar image is shown below."
+                        figure.suptitle(f"{figure_title}\n{figure_subtitle}", fontsize=16)
+                        # Flatten axes for easy iteration if grid is 2D
+                        if num_images > 1:
+                            axes = axes.flatten()
+                        else:
+                            axes = [axes]
+                        # Loop through the grid/images and display them
+                        for i in range(num_rows * num_columns):
+                            axis = axes[i]
+                            if i < num_images:
+                                axis.imshow(best_images[i])
+                                image_title = os.path.basename(best_urls[i])
+                                axis.set_title(image_title)
+                                image_rank = i + 1
+                                axis.set_xlabel(image_rank, fontsize=9)
+                            else:
+                                axis.axis('off')
+                            axis.set_xticks([])
+                            axis.set_yticks([])
+
+                        # Adjust layout to leave space for the title
+                        plt.tight_layout(rect=[0, 0, 1, 0.92])
+                        # Show the figure
+                        plt.show()
+
+                        success = True
+                        # Return the best URLs
+                        return success, best_urls
 
                 except Exception as e:
                     error_message = f"An error occurred while searching for most similar room images (keyword-based):\n{e}"
@@ -340,14 +499,14 @@ class RoomSearchTool(BaseTool):
 
                 try:
                     # Get the similarity scores of each image for the new query using the semantic similarity method
-                    success, similarities_semantic = room_search.get_similarities_semantic(room_search.image_urls, [user_query], room_search.descriptions)
+                    success, similarities_semantic = room_search.get_similarities_semantic(room_search.image_urls, [user_query], room_search.descriptions, normalize=False)
 
                     if success:
                         # Get the similarity score of each image for the new query, and store them
-                        for url, similarity_score in zip(room_search.image_urls, similarities_semantic):
+                        for url, similarity_score in zip(room_search.image_urls, similarities_semantic[0]):
                             
                             # similarity_score is a list of floats with only 1 element (for single query) in that case, so we take it
-                            score = similarity_score[0]
+                            score = similarity_score
 
                             # And store it
                             room_search.similarities[user_query]["semantic"][url] = score
@@ -391,6 +550,58 @@ class RoomSearchTool(BaseTool):
                             figure_subtitle = f"Most similar 6 images (best 6 matches) - {similarity_type} similarity"
                         else:
                             figure_subtitle = f"Most similar images - {similarity_type} similarity"
+                        figure.suptitle(f"{figure_title}\n{figure_subtitle}", fontsize=16)
+                        # Flatten axes for easy iteration if grid is 2D
+                        if num_images > 1:
+                            axes = axes.flatten()
+                        else:
+                            axes = [axes]
+                        # Loop through the grid/images and display them
+                        for i in range(num_rows * num_columns):
+                            axis = axes[i]
+                            if i < num_images:
+                                axis.imshow(best_images[i])
+                                image_title = os.path.basename(best_urls[i])
+                                axis.set_title(image_title)
+                                image_rank = i + 1
+                                axis.set_xlabel(image_rank, fontsize=9)
+                            else:
+                                axis.axis('off')
+                            axis.set_xticks([])
+                            axis.set_yticks([])
+
+                        # Adjust layout to leave space for the title
+                        plt.tight_layout(rect=[0, 0, 1, 0.92])
+                        # Show the figure
+                        plt.show()
+
+                        success = True
+                        # Return the best URLs
+                        return success, best_urls
+                    
+                    # If there are no images with similarity score > 0.5
+                    else:
+                        # Sort all similarities from highest to lowest similarity score
+                        sorted_urls = sorted(similarities, key=similarities.get, reverse=True)
+
+                        # Get the URL of the most similar room image (top match)
+                        best_urls = [sorted_urls[0]]
+
+                        # Get the RGB image corresponding to the best URLs
+                        best_images = [room_search.images_rgb[url] for url in best_urls]
+
+                        # DISPLAY THE BEST IMAGES
+                        # Get the number of images and determine the grid size (rows and columns) for clean layout
+                        num_images = len(best_images)
+                        # 2 images per row
+                        num_rows = math.ceil(num_images / 2)
+                        num_columns = math.ceil(num_images / num_rows)
+
+                        # Create a figure and axes
+                        figure, axes = plt.subplots(num_rows, num_columns, figsize=(num_rows * 5, num_columns * 5))
+                        # Set the title of the figure
+                        figure_title = f"User Query: {user_query}"
+                        figure_subtitle = f"No sufficiently similar images have been found for {similarity_type} similarity. However, the most similar image is shown below."
                         figure.suptitle(f"{figure_title}\n{figure_subtitle}", fontsize=16)
                         # Flatten axes for easy iteration if grid is 2D
                         if num_images > 1:

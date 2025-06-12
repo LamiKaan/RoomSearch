@@ -6,6 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__f
 import urllib3
 import asyncio
 import json
+import aioconsole
 
 from langchain_core.messages import ToolMessage, HumanMessage, SystemMessage
 from langchain_core.runnables.config import RunnableConfig
@@ -115,7 +116,7 @@ async def room_search_node(state: RoomSearchState, config: RunnableConfig) -> Co
 
 # -----------------------------------------------------------------------------------
 # Node to prompt the user to review/configure/approve/reject the tool call, and manage its routing
-def human_tool_reviewer(state: RoomSearchState, config: RunnableConfig) -> Command[Literal["room_search_agent", "room_search_node", "human_tool_reviewer"]]:
+async def human_tool_reviewer(state: RoomSearchState, config: RunnableConfig) -> Command[Literal["room_search_agent", "room_search_node", "human_tool_reviewer"]]:
 
     # Get the latest tool call from the state
     latest_tool_call = state["latest_tool_call"]
@@ -149,7 +150,8 @@ def human_tool_reviewer(state: RoomSearchState, config: RunnableConfig) -> Comma
 
         # Take user input
         print("\nUser input:")
-        user_choice = input().strip()
+        # user_choice = input().strip()
+        user_choice = (await aioconsole.ainput()).strip()
         try:
             choice = int(user_choice)
         except ValueError:
@@ -179,7 +181,8 @@ def human_tool_reviewer(state: RoomSearchState, config: RunnableConfig) -> Comma
 
                 # Take the second user input
                 print("\nUser input:")
-                user_choice2 = input().strip()
+                # user_choice2 = input().strip()
+                user_choice2 = (await aioconsole.ainput()).strip()
 
                 # If the user selected a similarity type
                 if user_choice2 in ['1', '2', '3']:
@@ -243,7 +246,8 @@ def human_tool_reviewer(state: RoomSearchState, config: RunnableConfig) -> Comma
 
                 # Take the second user input
                 print("\nUser input:")
-                user_choice2 = input().strip()
+                # user_choice2 = input().strip()
+                user_choice2 = (await aioconsole.ainput("")).strip()
 
                 # If the user selected a similarity type
                 if user_choice2 in ['1', '2', '3']:

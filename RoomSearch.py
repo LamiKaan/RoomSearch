@@ -15,6 +15,7 @@ import asyncio
 import requests
 import backoff
 from tqdm import tqdm
+import aioconsole
 
 from langchain_core.messages import ToolMessage, HumanMessage, SystemMessage
 from langchain_core.runnables.config import RunnableConfig
@@ -357,7 +358,7 @@ class RoomSearch:
         # Return (success, results)
         return all(r is not None and not isinstance(r, Exception) for r in results), results
     
-    def get_similarities_keyword(self, urls, queries, descriptions):
+    def get_similarities_keyword(self, urls, queries, descriptions, normalize=True):
         try:
             assert isinstance(urls, list), "URLs should be a list of strings."
             assert isinstance(queries, list), "Queries should be a list of strings."
@@ -378,17 +379,21 @@ class RoomSearch:
             description_vectors = tfidf_matrix[len(queries):]
             # Calculate cosine similarities between each query and description
             similarities_keyword = cosine_similarity(query_vectors, description_vectors)
-            # Apply row-wise (per query) min-max scaling to the similarity matrix such that the largest score is 1.0 and the lowest is 0.0
-            min_values = similarities_keyword.min(axis=1, keepdims=True)
-            max_values = similarities_keyword.max(axis=1, keepdims=True)
-            similarities_keyword_scaled = (similarities_keyword - min_values) / (max_values - min_values)
+            
+            if normalize:
+                # Apply row-wise (per query) min-max scaling to the similarity matrix such that the largest score is 1.0 and the lowest is 0.0
+                min_values = similarities_keyword.min(axis=1, keepdims=True)
+                max_values = similarities_keyword.max(axis=1, keepdims=True)
+                similarities_keyword_scaled = (similarities_keyword - min_values) / (max_values - min_values)
+            else:
+                similarities_keyword_scaled = similarities_keyword
             
             return (True, similarities_keyword_scaled)
         except Exception as e:
             print(f"Error while calculating keyword similarities: {e}")
             return (False, None)
         
-    def get_similarities_semantic(self, urls, queries, descriptions, show_progress=True):
+    def get_similarities_semantic(self, urls, queries, descriptions, show_progress=True, normalize=True):
         try:
 
             assert isinstance(urls, list), "URLs should be a list of strings."
@@ -429,10 +434,13 @@ class RoomSearch:
             # Convert to numpy array
             similarities_semantic = similarity_matrix.cpu().numpy()
 
-            # Apply row-wise (per query) min-max scaling to the similarity matrix such that the largest score is 1.0 and the lowest is 0.0
-            min_values = similarities_semantic.min(axis=1, keepdims=True)
-            max_values = similarities_semantic.max(axis=1, keepdims=True)
-            similarities_semantic_scaled = (similarities_semantic - min_values) / (max_values - min_values)
+            if normalize:
+                # Apply row-wise (per query) min-max scaling to the similarity matrix such that the largest score is 1.0 and the lowest is 0.0
+                min_values = similarities_semantic.min(axis=1, keepdims=True)
+                max_values = similarities_semantic.max(axis=1, keepdims=True)
+                similarities_semantic_scaled = (similarities_semantic - min_values) / (max_values - min_values)
+            else:
+                similarities_semantic_scaled = similarities_semantic
 
             if show_progress:
                 pbar.update(1)
@@ -820,7 +828,8 @@ class RoomSearch:
         while True:
             
             # Get input from the user
-            user_input = input("\nUser: ").strip()
+            # user_input = input("\nUser: ").strip()
+            user_input = (await aioconsole.ainput("\nUser: ")).strip()
             if user_input.lower() in ["exit", "quit"]:
                 print("Goodbye!")
                 break
@@ -938,17 +947,22 @@ if __name__ == "__main__":
             # Start chatting with the RoomSearch instance
             await room_search.start_chat()
 
-        # Suppress SSL warnings for insecure requests
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        def main_sync():
+
+            # Suppress SSL warnings for insecure requests
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            
+            # Get image urls and user queries from parameter file
+            with open("parameters.json", "r") as f:
+                parameters = json.load(f)
+            image_urls = parameters["IMAGE_URLS"]
+            user_queries = parameters["USER_QUERIES"]
+
+            # Create an instance of the RoomSearch class with image urls and user queries
+            room_search = asyncio.run(RoomSearch.create_instance_async(image_urls, user_queries))
+
+            # Start chatting with the RoomSearch instance
+            room_search.start_chat_sync()
+
         
-        # Get image urls and user queries from parameter file
-        with open("parameters.json", "r") as f:
-            parameters = json.load(f)
-        image_urls = parameters["IMAGE_URLS"]
-        user_queries = parameters["USER_QUERIES"]
-
-        # Create an instance of the RoomSearch class with image urls and user queries
-        room_search = asyncio.run(RoomSearch.create_instance_async(image_urls, user_queries))
-
-        # Start chatting with the RoomSearch instance
-        room_search.start_chat_sync()
+        asyncio.run(main())
