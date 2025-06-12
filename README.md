@@ -41,8 +41,7 @@
    <br>
    <br>
 10. To quit chat, type "exit" or "quit" to the user prompt:
-
-```bash
-User: quit
-User: exit
-```
+   ```bash
+   User: quit
+   User: exit
+   ```
