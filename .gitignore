@@ -25,6 +25,8 @@ documentation/technical_doc.pages
 test_videos/
 # Everything that ends with "_old"
 *_old*
+# Text editor files
+*.pages
 
 
 

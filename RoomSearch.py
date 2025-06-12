@@ -15,6 +15,7 @@ import asyncio
 import requests
 import backoff
 from tqdm import tqdm
+import aioconsole
 
 from langchain_core.messages import ToolMessage, HumanMessage, SystemMessage
 from langchain_core.runnables.config import RunnableConfig
@@ -820,7 +821,7 @@ class RoomSearch:
         while True:
             
             # Get input from the user
-            user_input = input("\nUser: ").strip()
+            user_input = (await aioconsole.ainput("\nUser: ")).strip()
             if user_input.lower() in ["exit", "quit"]:
                 print("Goodbye!")
                 break
